@@ -6,6 +6,6 @@
   (let [f #(put! ch %)]
     (events/listen js/document events/EventType.CLICK f)
     (fn []
-      (events/unlisten js/document events/EventType.CLICK))))
+      (events/unlisten js/document events/EventType.CLICK f))))
 
 
