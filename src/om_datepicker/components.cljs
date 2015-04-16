@@ -206,8 +206,8 @@
          :result-ch result-ch
          :kill-ch   (chan (sliding-buffer 1))})
 
-      om/IWillMount
-      (will-mount [_]
+      om/IDidMount
+      (did-mount [_]
         (let [{:keys [kill-ch result-ch]} (om/get-state owner)]
           (when value-ch
             (go-loop []
@@ -279,8 +279,8 @@
          :kill-ch         (chan (sliding-buffer 1))
          :value           (d/first-of-month (get cursor :value (d/today)))})
 
-      om/IWillMount
-      (will-mount [_]
+      om/IDidMount
+      (did-mount [_]
         (let [{:keys [kill-ch month-change-ch select-ch]} (om/get-state owner)]
           (go-loop []
                    (let [[v ch] (alts! [kill-ch month-change-ch select-ch] :priority true)]
@@ -351,13 +351,14 @@
     om/IInitState
     (init-state [_]
       {:expanded       false
-       :mouse-click-ch (mouse-click)
+       :mouse-click-ch (chan (sliding-buffer 1))
        :select-ch      (chan (sliding-buffer 1))
        :kill-ch        (chan (sliding-buffer 1))})
 
-    om/IWillMount
-    (will-mount [_]
-      (let [{:keys [kill-ch mouse-click-ch select-ch]} (om/get-state owner)]
+    om/IDidMount
+    (did-mount [_]
+      (let [{:keys [kill-ch mouse-click-ch select-ch]} (om/get-state owner)
+            stop-mouse-click-fn (mouse-click mouse-click-ch)]
         (go-loop []
                  (let [[v ch] (alts! [kill-ch mouse-click-ch select-ch] :priority true)]
                    (condp = ch
@@ -374,7 +375,9 @@
                      kill-ch        (do
                                       (async/close! mouse-click-ch)
                                       (async/close! select-ch)
-                                      (async/close! kill-ch))
+                                      (async/close! kill-ch)
+                                      (when (fn? stop-mouse-click-fn)
+                                        (stop-mouse-click-fn)))
                      nil)))))
 
     om/IWillUnmount
@@ -434,14 +437,15 @@
          :mode            :start
          :start           (get cursor :start (d/today))
          :end             (get cursor :end (d/today))
-         :mouse-click-ch  (mouse-click)
+         :mouse-click-ch  (chan (sliding-buffer 1))
          :month-select-ch (chan (sliding-buffer 1))
          :select-ch       (chan (sliding-buffer 1))
          :kill-ch         (chan (sliding-buffer 1))})
 
-      om/IWillMount
-      (will-mount [_]
-        (let [{:keys [kill-ch mouse-click-ch month-select-ch select-ch]} (om/get-state owner)]
+      om/IDidMount
+      (did-mount [_]
+        (let [{:keys [kill-ch mouse-click-ch month-select-ch select-ch]} (om/get-state owner)
+              stop-mouse-click-fn (mouse-click mouse-click-ch)]
           (go-loop []
                    (let [[v ch] (alts! [kill-ch mouse-click-ch month-select-ch select-ch] :priority true)]
                      (condp = ch
@@ -471,7 +475,9 @@
                                          (async/close! month-select-ch)
                                          (async/close! mouse-click-ch)
                                          (async/close! select-ch)
-                                         (async/close! kill-ch))
+                                         (async/close! kill-ch)
+                                         (when (fn? stop-mouse-click-fn)
+                                           (stop-mouse-click-fn)))
                        nil)))))
 
       om/IWillUnmount

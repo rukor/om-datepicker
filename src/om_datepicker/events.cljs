@@ -2,7 +2,10 @@
   (:require [cljs.core.async :as async :refer [chan put!]]
             [goog.events :as events]))
 
-(defn mouse-click []
-  (let [ch (chan)]
-    (events/listen js/document events/EventType.CLICK #(put! ch %))
-    ch))
+(defn mouse-click [ch]
+  (let [f #(put! ch %)]
+    (events/listen js/document events/EventType.CLICK f)
+    (fn []
+      (events/unlisten js/document events/EventType.CLICK))))
+
+
