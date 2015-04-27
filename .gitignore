@@ -14,3 +14,5 @@ examples/app.min.js
 /out
 /examples/out
 /examples/public/css/*.css
+.idea
+*.iml
